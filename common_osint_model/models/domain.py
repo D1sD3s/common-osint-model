@@ -3,6 +3,8 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
+from common_osint_model.models.com_object import COMObject
+
 
 class Entity(BaseModel):
     """Represents an entity which registered a domain."""
@@ -18,13 +20,10 @@ class Entity(BaseModel):
     timestamp: datetime = datetime.now(UTC)
 
 
-class Domain(BaseModel):
+class Domain(COMObject):
     """Represents a domain pointing to a specific host. Also, this object might be used to represent found via other
     sources, therefore a 'query' field might contain the query used to find it"""
     domain: str
-    first_seen: datetime = datetime.now(UTC)
-    last_seen: datetime = datetime.now(UTC)
-    source: Optional[str] = None
     type: Optional[str] = None
     soa: Optional[List[str]] = None
     nameserver: Optional[List[str]] = None

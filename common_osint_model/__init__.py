@@ -1,3 +1,4 @@
+from common_osint_model.models.com_object import COMObject
 from common_osint_model.models.host import Host
 from common_osint_model.models.domain import Domain
 from common_osint_model.models.service import Service

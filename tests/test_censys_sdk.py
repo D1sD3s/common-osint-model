@@ -60,7 +60,7 @@ def test_host_services_mock_success():
     assert com_host.services[0].protocol == "CWMP"
     assert com_host.services[0].sha256 == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     assert com_host.services[0].timestamp == datetime.fromisoformat("2025-03-06T19:03:55Z")
-    assert com_host.services[0].source == "censys"
+    assert "censys" in com_host.services[0].sources
 
 def test_service_success():
     # Make sure that import works
@@ -77,4 +77,4 @@ def test_service_success():
     assert com_service.protocol == "CWMP"
     assert com_service.sha256 == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     assert com_service.timestamp == datetime.fromisoformat("2025-03-06T19:03:55Z")
-    assert com_service.source == "censys"
+    assert "censys" in com_service.sources

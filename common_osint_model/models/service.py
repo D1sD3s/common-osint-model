@@ -1,7 +1,5 @@
-from datetime import datetime, UTC
+from datetime import datetime
 from typing import Dict, List, Optional
-
-from pydantic import BaseModel
 
 from common_osint_model.models import (
     ShodanDataHandler,
@@ -13,13 +11,14 @@ from common_osint_model.models.http import HTTPComponent
 from common_osint_model.models.ssh import SSHComponent
 from common_osint_model.models.tls import TLSComponent
 from common_osint_model.models.dns import DNSComponent
+from common_osint_model.models.com_object import COMObject
 from common_osint_model.utils import hash_all
 
 from censys_platform.models import Service as CensysService
 
 
 class Service(
-    BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandler, Logger
+    COMObject, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandler, Logger
 ):
     """Represents a single service answering connections on specific ports."""
 
@@ -34,10 +33,8 @@ class Service(
     sha256: Optional[str] = None
     murmur: Optional[str] = None
     ja4tscan: Optional[str] = None
-    # Every service object should include these timestamps. "timestamp" can be used for tracking the observation
+    # "timestamp" can be used for tracking the observation
     # timestamp from scanning services (e.g. Shodan)
-    first_seen: Optional[datetime] = datetime.now(UTC)
-    last_seen: Optional[datetime] = datetime.now(UTC)
     timestamp: Optional[datetime] = None
     # We need to include every possible service component here. In order to not export empty dictionary keys, the class
     # object can be exported with dict(exclude_none=True), so e.g. empty tls keys are skipped.
@@ -45,9 +42,6 @@ class Service(
     tls: Optional[TLSComponent] = None
     ssh: Optional[SSHComponent] = None
     dns: Optional[DNSComponent] = None
-    # Typically hosts consist of different services which might be discovered by different scanning services, so
-    # remarking which service was observed by which scanner might be a good idea.
-    source: str
 
     @classmethod
     def from_shodan(cls, d: Dict):
@@ -92,7 +86,7 @@ class Service(
             tls=tlsobj,
             dns=dnsobj,
             timestamp=datetime.fromisoformat(d["timestamp"]),
-            source="shodan",
+            sources=["shodan"],
         )
 
     @classmethod
@@ -150,7 +144,7 @@ class Service(
                 tls=tls,
                 http=http,
                 dns=dns,
-                source="censys"
+                sources=["censys"]
             )
 
             pass
@@ -198,7 +192,7 @@ class Service(
             sha1=sha1,
             sha256=sha256,
             murmur=murmur,
-            source="binaryedge",
+            sources=["binaryedge"],
         )
 
     @classmethod
@@ -246,5 +240,5 @@ class Service(
             ssh=sshobj,
             dns=dnsobj,
             timestamp=timestamp,
-            source="censys",
+            sources=["censys"],
         )

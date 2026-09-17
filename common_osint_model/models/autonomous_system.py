@@ -1,19 +1,19 @@
 import ipaddress
 from typing import Dict, List, Optional
 
-from pydantic import field_validator, BaseModel
+from pydantic import field_validator
 
 from common_osint_model.models import ShodanDataHandler, CensysDataHandler, Logger
+from common_osint_model.models.com_object import COMObject
 from censys_platform.models import Routing
 
 
-class AutonomousSystem(BaseModel, ShodanDataHandler, CensysDataHandler, Logger):
+class AutonomousSystem(COMObject, ShodanDataHandler, CensysDataHandler, Logger):
     """Represents an autonomous system"""
     number: Optional[int] = None
     name: Optional[str] = None
     country: Optional[str] = None
     prefix: Optional[str] = None
-    source: str
     # TODO: Add ASN Description and Organization
 
     @field_validator("prefix")
@@ -42,7 +42,7 @@ class AutonomousSystem(BaseModel, ShodanDataHandler, CensysDataHandler, Logger):
             name=d.get("isp"),
             country=d.get("location", {}).get("country_code", None),
             prefix=None,  # Not available in Shodan data
-            source="shodan"
+            sources=["shodan"]
         )
 
     @classmethod
@@ -53,7 +53,7 @@ class AutonomousSystem(BaseModel, ShodanDataHandler, CensysDataHandler, Logger):
                 name=autonomous_system.name,
                 country=autonomous_system.country_code,
                 prefix=autonomous_system.bgp_prefix,
-                source="censys"
+                sources=["censys"]
             )
         
         if isinstance(autonomous_system, Dict):
@@ -63,7 +63,7 @@ class AutonomousSystem(BaseModel, ShodanDataHandler, CensysDataHandler, Logger):
                 name=autonomous_system.get("name", None),
                 country=autonomous_system.get("country_code", None),
                 prefix=autonomous_system.get("bgp_prefix", None),
-                source="censys"
+                sources=["censys"]
             )
         
         return None

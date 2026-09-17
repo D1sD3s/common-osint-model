@@ -1,11 +1,12 @@
 import ipaddress
 import json
-from datetime import datetime, UTC
+from datetime import datetime
 from typing import Optional, Dict, List, Union
 
-from pydantic import field_validator, BaseModel
+from pydantic import field_validator
 
 from common_osint_model.models import ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandler, Logger
+from common_osint_model.models.com_object import COMObject
 from common_osint_model.models.autonomous_system import AutonomousSystem
 from common_osint_model.models.domain import Domain
 from common_osint_model.models.service import Service
@@ -13,7 +14,7 @@ from common_osint_model.utils import flatten
 from censys_platform.models import HostAsset, HostAssetWithMatchedServices
 
 
-class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandler, Logger):
+class Host(COMObject, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandler, Logger):
     """This class represents a host and can be used to handle results from the common model in a pythonic way."""
     ip: str
     # Information about the autonomous system the host is assigned to
@@ -22,13 +23,8 @@ class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandle
     services: Optional[List[Service]] = None
     # List of open ports also mentioned in the open
     ports: Optional[List[int]] = None
-    # Timestamps for activity tracking
-    first_seen: Optional[datetime] = datetime.now(UTC)
-    last_seen: Optional[datetime] = datetime.now(UTC)
     # A list of domains, fqdns, common names - or other attributes which represent domainnames -  assigned to the host
     domains: Optional[List[Domain]] = None
-    # This represents the source where the host information was obtained, e.g. shodan, censys...
-    source: Optional[str] = None
     # Optionally, the used query to find the host can be assigned to the object also which might be useful for comparing
     # different hosts later on
     query: Optional[str] = None
@@ -80,13 +76,13 @@ class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandle
                     for domain in entry["domains"]:
                         if domain not in domain_strings:
                             domain_strings.append(domain)
-                            domains.append(Domain(domain=domain, source="shodan", type="domain"))
+                            domains.append(Domain(domain=domain, sources=["shodan"], type="domain"))
                 # Check Shodans reverse dns lookups
                 if "hostnames" in entry and not skip_shodan_domains:
                     for hostname in entry["hostnames"]:
                         if hostname not in domain_strings:
                             domain_strings.append(hostname)
-                            domains.append(Domain(domain=hostname, source="shodan", type="rdns"))
+                            domains.append(Domain(domain=hostname, sources=["shodan"], type="rdns"))
             ip = d[0]["ip_str"]
             services = [Service.from_shodan(service) for service in d]
         else:
@@ -101,7 +97,7 @@ class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandle
                             domain=domain,
                             first_seen=service.tls.certificate.issued,
                             last_seen=service.tls.certificate.expires,
-                            source="shodan",
+                            sources=["shodan"],
                             type="common_name"
                         ))
         autonomous_system = AutonomousSystem.from_shodan(d)
@@ -110,7 +106,7 @@ class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandle
             autonomous_system=autonomous_system,
             services=services,
             domains=domains,
-            source="shodan",
+            sources=["shodan"],
             ports=[service.port for service in services]
         )
     
@@ -127,7 +123,7 @@ class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandle
                         Domain(
                             domain=domain,
                             first_seen = host.resource.dns.forward_dns.get(domain).resolve_time,
-                            source = "censys",
+                            sources = ["censys"],
                             type = host.resource.dns.forward_dns.get(domain).record_type
                         )
                     )
@@ -139,7 +135,7 @@ class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandle
                         Domain(
                             domain=reverse_dns_domain,
                             first_seen = host.resource.dns.reverse_dns.resolve_time,
-                            source = "censys",
+                            sources = ["censys"],
                             type = "rdns"
                         )
                     )
@@ -153,7 +149,7 @@ class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandle
             return Host(
                 ip=host.resource.ip,
                 domains=domains,
-                source="censys",
+                sources=["censys"],
                 services=services,
                 ports=[service.port for service in services],
                 autonomous_system=AutonomousSystem.from_censys(host.resource.autonomous_system)
@@ -190,14 +186,14 @@ class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandle
                             domain=domain,
                             first_seen=service.tls.certificate.issued,
                             last_seen=service.tls.certificate.expires,
-                            source="binaryedge",
+                            sources=["binaryedge"],
                             type="common_name"
                         ))
         return Host(
             ip=ip,
             services=services_objects,
             domains=domains,
-            source="binaryedge",
+            sources=["binaryedge"],
             ports=[service.port for service in services_objects]
         )
 
@@ -220,7 +216,7 @@ class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandle
                             # Currently not given by API
                             # first_seen=service.tls.certificate.issued,
                             # last_seen=service.tls.certificate.expires,
-                            source="censys",
+                            sources=["censys"],
                             type="common_name"
                         ))
         return Host(
@@ -228,6 +224,6 @@ class Host(BaseModel, ShodanDataHandler, CensysDataHandler, BinaryEdgeDataHandle
             autonomous_system=AutonomousSystem.from_censys(d),
             services=services,
             domains=domains,
-            source="censys",
+            sources=["censys"],
             ports=[service.port for service in services]
         )
